@@ -5,12 +5,13 @@
  :itonami.blueprint/license "AGPL-3.0-or-later"
  :itonami.blueprint/social-impact [:supply-resilience :rural-access :decarbonization]
  :itonami.blueprint/governor :freight-governor
- :itonami.blueprint/required-technologies [:logistics :identity :forms :dmn :bpmn :audit-ledger :optimization]
- :itonami.blueprint/optional-technologies [:telemetry]
+ :itonami.blueprint/required-technologies [:robotics :logistics :identity :forms :dmn :bpmn :audit-ledger]
+ :itonami.blueprint/optional-technologies [:optimization :telemetry]
  :itonami.blueprint/status :public-oss
  :itonami.blueprint/robotics true
  :itonami.blueprint/game {:id "freight-dispatch"
                           :repo "gftdcojp/network-isekai"
                           :path "public/games/itonami/freight-dispatch"
                           :url "https://isekai.network/itonami/freight-dispatch"
-                          :adr "ADR-2607031000"}}
+                          :adr "ADR-2607031000"}
+ :itonami.blueprint/maturity :implemented}

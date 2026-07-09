@@ -83,7 +83,10 @@ one is actually load-bearing for here (not a generic capability list):
 
 `:itonami.blueprint/optional-technologies` adds `:telemetry` — vehicle/shipment position and
 condition feeds for carriers who want live tracking beyond the tracking-number/POD minimum; it
-is not required for the governor rule to function.
+is not required for the governor rule to function. (Field-sync note: `:optimization` also moved
+to `:optional-technologies` as part of this actor's own promotion, to match the `kotoba-lang/
+industry` registry's own `:required-technologies` for `"4920"` exactly -- see Implementation
+notes below.)
 
 ## Trust Controls
 - shipments with invalid tracking numbers cannot dispatch
@@ -91,6 +94,34 @@ is not required for the governor rule to function.
 - settlements require governor approval
 - proof-of-delivery is auditable for every consignment
 - customer and route data stays outside Git
+
+## Implementation notes (`:implemented`)
+
+The Decision Rule above was published before this actor existed; the actual
+`freightops.governor` implements it faithfully, calling `kotoba-lang/logistics`'s own validated
+`tracking-valid?` function rather than reimplementing it (the SECOND vertical in this fleet to
+wrap a real, pre-existing bespoke capability library, after `retailops`/4711's own
+`kotoba-lang/retail` integration):
+
+- `tracking-number-invalid-violations` — the tracking-number-validity check above, delegating
+  to the capability library, evaluated unconditionally on every `:shipment/dispatch`.
+- `pod-chain-integrity-violations` — the POD-chain-integrity check above, a genuinely new
+  concept grounded in the US Carmack Amendment and the CMR Convention (UK/Germany).
+- `cargo-liability-disclosure-violations` — the FLAGSHIP genuinely new check this vertical
+  adds, grounded in a real 4-jurisdiction cargo-liability-disclosure catalog
+  (`freightops.facts`): the US Carmack Amendment, the UK's Carriage of Goods by Road Act 1965
+  (CMR), Germany's HGB §407 ff. (CMR), and Japan's own 商法 (Commercial Code).
+- `delivery-exception-unresolved-violations` — the exception-suppression check above,
+  evaluated unconditionally across both dispatch and settlement.
+- `already-dispatched-violations` / `already-settled-violations` — the double-actuation guards
+  every sibling actor in this fleet uses.
+
+`:shipment/dispatch` and `:consignment/settle` are the two real-world actuation events
+(`#{:actuation/dispatch-shipment :actuation/settle-consignment}`), applied SEQUENTIALLY to the
+SAME shipment (dispatch first, settlement later) rather than `retailops`/4711's own `:kind`-
+distinguished alternative-action shape — neither ever auto-commits at any phase. Multi-modal
+route optimization (the `:optimization` line above) is a follow-up slice, not in this R0 build
+-- see README `Business-process coverage`.
 
 ## Robotics Premise
 
