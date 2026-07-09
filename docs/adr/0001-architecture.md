@@ -134,13 +134,17 @@ db`-backed), proven to satisfy the same contract in
 Like `cloud-itonami-isic-4711`, this repo's `blueprint.edn` DID need a
 field-sync fix: `:required-technologies` was missing `:robotics`
 (present in the `kotoba-lang/industry` registry's own entry for
-`"4920"`) and included `:optimization` as required even though the
-registry's own tech stack doesn't track it as required OR optional --
-fixed by aligning `:required-technologies` to registry's exact list
-and moving `:optimization` to `:optional-technologies` (alongside
-`:telemetry`). Separately, this R0 build deliberately scopes DOWN from
-the full Decision Rule already published: multi-modal route
-optimization is left as a follow-up slice.
+`"4920"`, which also correctly includes `:optimization` as required,
+matching this blueprint's own original list) -- fixed by adding
+`:robotics` to `:required-technologies`, matching registry's exact
+list. (An earlier version of this fix incorrectly also moved
+`:optimization` into `:optional-technologies`, based on a misread of
+the registry entry; this was caught and corrected in a same-day
+follow-up commit before promotion.) Separately, this R0 build
+deliberately scopes DOWN from the full Decision Rule already
+published: multi-modal route optimization is left as a follow-up
+slice, even though its capability is already correctly marked
+required.
 
 ## Alternatives considered
 
@@ -171,8 +175,8 @@ optimization is left as a follow-up slice.
 - 37 tests / 180 assertions pass; lint is clean; the demo
   (`clojure -M:dev:run`) walks one clean dispatch + settlement
   lifecycle, plus five HARD-hold scenarios, end-to-end.
-- `blueprint.edn` required a field-sync fix (`:robotics` missing,
-  `:optimization` misplaced) in addition to the `:maturity` flip.
+- `blueprint.edn` required a field-sync fix (`:robotics` missing from
+  `:required-technologies`) in addition to the `:maturity` flip.
 
 ## References
 

@@ -83,10 +83,7 @@ one is actually load-bearing for here (not a generic capability list):
 
 `:itonami.blueprint/optional-technologies` adds `:telemetry` — vehicle/shipment position and
 condition feeds for carriers who want live tracking beyond the tracking-number/POD minimum; it
-is not required for the governor rule to function. (Field-sync note: `:optimization` also moved
-to `:optional-technologies` as part of this actor's own promotion, to match the `kotoba-lang/
-industry` registry's own `:required-technologies` for `"4920"` exactly -- see Implementation
-notes below.)
+is not required for the governor rule to function.
 
 ## Trust Controls
 - shipments with invalid tracking numbers cannot dispatch
