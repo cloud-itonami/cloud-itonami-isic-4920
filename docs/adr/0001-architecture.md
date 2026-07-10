@@ -101,10 +101,12 @@ cargo-liability-disclosure law: the US Carmack Amendment (49 U.S.C.
 the CMR Convention), Germany's HGB §407 ff. Frachtgeschäft (also CMR),
 and Japan's own 商法 (Commercial Code) 運送営業 provisions. Unlike some
 prior repair-shop-cluster siblings' own honest single-jurisdiction
-gap, ALL FOUR seeded jurisdictions actually have a real regime here,
+gap, ALL EIGHT seeded jurisdictions actually have a real regime here,
 reported honestly (matching `leathergoods`/9523's own, `ictrepair`/
 9511's own and `retailops`/4711's own full-coverage sub-citations).
-Evaluated UNCONDITIONALLY on every `:consignment/settle`.
+Evaluated UNCONDITIONALLY on every `:consignment/settle`. See
+"Addendum: IND/SAU/ARE/MEX jurisdiction extension" below for the four
+jurisdictions seeded after this ADR was first written.
 
 ### Decision 7: `delivery-exception-unresolved?` -- explicit, unconditional across both actuation ops
 
@@ -178,6 +180,33 @@ required.
 - `blueprint.edn` required a field-sync fix (`:robotics` missing from
   `:required-technologies`) in addition to the `:maturity` flip.
 
+## Addendum: IND/SAU/ARE/MEX jurisdiction extension
+
+`freightops.facts/catalog` grows from 4 to 8 seeded jurisdictions:
+India, Saudi Arabia, UAE and Mexico added alongside the original
+JPN/USA/GBR/DEU, each with a real carrier-safety/licensing AND a real,
+SEPARATE cargo-liability-disclosure citation -- same schema, no new
+fields. Two honesty notes worth recording:
+
+- **ARE**: UAE road-freight carrier licensing is genuinely
+  emirate-level operational detail under a thin federal framework
+  (Federal Law No. 9 of 2011) -- Abu Dhabi Mobility's Resolution No.
+  74 of 2021 is cited as the concrete, verified regime (each emirate
+  issues its own equivalent; this is not claimed as a single uniform
+  UAE-wide rule, the same honesty discipline `terminal`/5210's own
+  jurisdiction-level citations already establish).
+- **MEX**: Mexico's cargo-liability regime (Código de Comercio, Arts.
+  576-604) is codified private/commercial law enforced through
+  ordinary courts, not a dedicated regulatory agency the way MoRTH/
+  TGA/UAE-MOJ are for the other three -- reported as such rather than
+  inventing an agency that does not exist for this function.
+
+Every new entry's `:provenance`/`:liability-provenance` URL resolves
+to an official government domain (`morth.gov.in`, `tga.gov.sa`,
+`misa.gov.sa`, `admobility.gov.ae`, `uaelegislation.gov.ae`,
+`gob.mx`, `diputados.gob.mx`), verified by direct web research at
+extension time, never carried over from training-data recall alone.
+
 ## References
 
 - `cloud-itonami-isic-6511/docs/adr/0001-architecture.md` (origin of
@@ -189,3 +218,10 @@ required.
 - Carriage of Goods by Road Act 1965 (CMR Convention) (UK)
 - Handelsgesetzbuch (HGB) §407 ff. (CMR Convention) (Germany)
 - 商法 (Commercial Code) 運送営業規定 (Japan)
+- Motor Vehicles Act, 1988 + Carriage by Road Act, 2007 (India)
+- TGA Regulation Organizing Freight Transport (Decision 1/1068);
+  Civil Transactions Law, Royal Decree M/191, 2023 (Saudi Arabia)
+- Abu Dhabi Mobility Resolution No. 74 of 2021; Federal Decree-Law
+  No. 50 of 2022 (UAE)
+- Ley de Caminos, Puentes y Autotransporte Federal; Código de
+  Comercio Arts. 576-604 (Mexico)

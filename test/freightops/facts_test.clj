@@ -6,12 +6,17 @@
   (is (some? (facts/spec-basis "JPN")))
   (is (string? (:provenance (facts/spec-basis "JPN")))))
 
-(deftest all-four-seeded-jurisdictions-have-a-liability-spec-basis
+(deftest newly-seeded-jurisdictions-have-a-spec-basis
+  (doseq [iso3 ["IND" "SAU" "ARE" "MEX"]]
+    (is (some? (facts/spec-basis iso3)) (str iso3 " spec-basis"))
+    (is (string? (:provenance (facts/spec-basis iso3))) (str iso3 " provenance"))))
+
+(deftest all-eight-seeded-jurisdictions-have-a-liability-spec-basis
   ;; unlike some prior repair-shop-cluster siblings' own honest single-
-  ;; jurisdiction gap, ALL FOUR seeded jurisdictions actually have a
+  ;; jurisdiction gap, ALL EIGHT seeded jurisdictions actually have a
   ;; real cargo-liability-disclosure enforcement regime here --
   ;; reported honestly, not forced narrower
-  (doseq [iso3 ["JPN" "USA" "GBR" "DEU"]]
+  (doseq [iso3 ["JPN" "USA" "GBR" "DEU" "IND" "SAU" "ARE" "MEX"]]
     (is (some? (facts/liability-spec-basis iso3)) (str iso3 " liability-spec-basis"))
     (is (string? (:liability-provenance (facts/liability-spec-basis iso3))) (str iso3 " liability-provenance"))))
 

@@ -115,12 +115,14 @@
                                        (implementing the CMR
                                        Convention), Germany's HGB §407
                                        ff. Frachtgeschäft (also CMR),
-                                       and Japan's own 商法
+                                       Japan's own 商法
                                        (Commercial Code) 運送営業
-                                       provisions -- ALL FOUR seeded
-                                       jurisdictions actually have a
-                                       real regime here, reported
-                                       honestly (matching
+                                       provisions, and India/Saudi
+                                       Arabia/UAE/Mexico's own seeded
+                                       regimes (`freightops.facts`) --
+                                       ALL EIGHT seeded jurisdictions
+                                       actually have a real regime here,
+                                       reported honestly (matching
                                        `leathergoods`/9523's,
                                        `ictrepair`/9511's and
                                        `retailops`/4711's own full-
