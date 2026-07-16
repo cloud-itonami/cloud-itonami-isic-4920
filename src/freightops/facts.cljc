@@ -22,9 +22,13 @@
   fabricate one, and the governor holds if it tries. As with
   `leathergoods`/9523's own brand-authenticity sub-citation,
   `ictrepair`/9511's own media-sanitization sub-citation, and
-  `retailops`/4711's own unit-pricing sub-citation, ALL FOUR seeded
+  `retailops`/4711's own unit-pricing sub-citation, ALL EIGHT seeded
   jurisdictions actually have a real cargo-liability-disclosure regime
-  here, reported honestly rather than forcing an artificial gap.")
+  here, reported honestly rather than forcing an artificial gap --
+  including MEX, whose cargo-liability regime is codified private/
+  commercial law (Código de Comercio) enforced through ordinary courts
+  rather than a dedicated regulatory agency, reported as such rather
+  than inventing an agency that does not exist for this function.")
 
 (def catalog
   "iso3 -> requirement map. `:required-evidence` mirrors the generic
@@ -84,7 +88,55 @@
                               "Haftungsoffenlegungsnachweis (cargo-liability-disclosure record)"]
           :liability-owner-authority "Bundesamt für Güterverkehr (BAG)"
           :liability-legal-basis "Handelsgesetzbuch (HGB) §407 ff. Frachtgeschäft; CMR-Übereinkommen"
-          :liability-provenance "https://www.gesetze-im-internet.de/hgb/"}})
+          :liability-provenance "https://www.gesetze-im-internet.de/hgb/"}
+   "IND" {:name "India"
+          :owner-authority "Ministry of Road Transport and Highways (MoRTH)"
+          :legal-basis "Motor Vehicles Act, 1988, as amended by the Motor Vehicles (Amendment) Act, 2019 -- National Permit scheme"
+          :national-spec "A commercial goods-transport vehicle must hold a valid registration + National/State Permit and comply with fitness/driver-licensing rules to lawfully operate as a carrier"
+          :provenance "https://morth.gov.in/en/national-permit"
+          :required-evidence ["Shipment-registration record"
+                              "Carrier-authorization record"
+                              "Tracking record"
+                              "Cargo-liability-disclosure record"]
+          :liability-owner-authority "Ministry of Road Transport and Highways (MoRTH)"
+          :liability-legal-basis "Carriage by Road Act, 2007 (replaced the colonial-era Carriers Act, 1865)"
+          :liability-provenance "https://morth.gov.in/en/carriage-road-act-2007"}
+   "SAU" {:name "Saudi Arabia"
+          :owner-authority "الهيئة العامة للنقل (Transport General Authority, TGA)"
+          :legal-basis "اللائحة المنظمة لنشاط نقل البضائع ووسطاء الشحن وتأجير الشاحنات على الطرق البرية (Regulation Organizing Freight Transport, Freight Forwarding and Truck-Rental Activity on Land Roads, TGA Decision 1/1068)"
+          :national-spec "Carriers must hold commercial registration for freight activity, a current vehicle technical-inspection certificate and civil-liability vehicle insurance, and log operations on the 'Logisti' platform"
+          :provenance "https://www.tga.gov.sa/en/Regulations"
+          :required-evidence ["Shipment-registration record"
+                              "Carrier-authorization record"
+                              "Tracking record"
+                              "Cargo-liability-disclosure record"]
+          :liability-owner-authority "وزارة العدل / المحاكم التجارية (Ministry of Justice / Commercial Courts)"
+          :liability-legal-basis "نظام المعاملات المدنية (Civil Transactions Law, Royal Decree M/191, 2023) -- contract-of-carriage (عقد النقل) provisions"
+          :liability-provenance "https://misa.gov.sa/app/uploads/2025/07/Civil-Transactions-Law.pdf"}
+   "ARE" {:name "United Arab Emirates"
+          :owner-authority "Abu Dhabi Mobility (formerly Department of Municipalities and Transport), under the federal Law No. 9 of 2011 on Land Transportation"
+          :legal-basis "Resolution No. 74 of 2021, Regulation of Transport of Goods in the Emirate of Abu Dhabi"
+          :national-spec "Carriers must hold an Activity Permit, drivers a Vocational Permit, and comply with GPS/electronic-tracking, axle-weight and 3-year maintenance-record requirements -- an emirate-level regime under the federal land-transport framework (each emirate issues its own equivalent; Abu Dhabi's is the one cited here)"
+          :provenance "https://admobility.gov.ae/-/media/feature/itc-revamp/generic-content/related-documents/asateel/related-doc/freight-regulations-en.pdf"
+          :required-evidence ["Shipment-registration record"
+                              "Carrier-authorization record"
+                              "Tracking record"
+                              "Cargo-liability-disclosure record"]
+          :liability-owner-authority "UAE Ministry of Justice / federal courts, under the Commercial Transactions Law"
+          :liability-legal-basis "Federal Decree-Law No. 50 of 2022 (Commercial Transactions Law), Arts. 296-308 (Contract of Carriage)"
+          :liability-provenance "https://uaelegislation.gov.ae/en/legislations/1610"}
+   "MEX" {:name "Mexico"
+          :owner-authority "Secretaría de Infraestructura, Comunicaciones y Transportes (SICT)"
+          :legal-basis "Ley de Caminos, Puentes y Autotransporte Federal (LCPAF) + Reglamento de Autotransporte Federal y Servicios Auxiliares (RAFSA); NOM-012-SCT-2-2017 (weight/dimension limits)"
+          :national-spec "A carrier must hold an SICT-issued permiso de autotransporte federal de carga general (vehicle registration, liability insurance, RFC/tax status) to operate on federal routes"
+          :provenance "https://www.gob.mx/tramites/ficha/expedicion-del-permiso-para-el-servicio-de-autotransporte-federal-de-carga-general/SCT1699"
+          :required-evidence ["Registro de embarque (shipment-registration record)"
+                              "Autorización de transportista (carrier-authorization record)"
+                              "Registro de rastreo (tracking record)"
+                              "Divulgación de responsabilidad de carga (cargo-liability-disclosure record)"]
+          :liability-owner-authority "Poder Judicial (ordinary commercial courts) -- codified private/commercial law, not a dedicated regulatory agency"
+          :liability-legal-basis "Código de Comercio, Libro Segundo, Título Décimo, Cap. I, Arts. 576-604 (Del Contrato Mercantil de Transporte Terrestre)"
+          :liability-provenance "https://www.diputados.gob.mx/LeyesBiblio/pdf/CCom.pdf"}})
 
 (defn spec-basis
   "The jurisdiction's requirement map, or nil -- nil means NO spec-basis,
@@ -127,7 +179,7 @@
   "The jurisdiction's cargo-liability-disclosure requirement map, or
   nil -- nil means this jurisdiction has NO formal statutory cargo-
   liability-disclosure regime this catalog is aware of. In this R0
-  catalog all four seeded jurisdictions actually have one (unlike some
+  catalog all eight seeded jurisdictions actually have one (unlike some
   prior siblings' own honest single-jurisdiction gap), reported
   honestly."
   [iso3]
