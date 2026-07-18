@@ -32,7 +32,16 @@
   settled, on what jurisdictional basis, approved by whom' is always a
   query over an immutable log -- the audit trail a customer or
   carrier trusting a freight operator needs, and the evidence an
-  operator needs if a dispatch or a settlement is later disputed."
+  operator needs if a dispatch or a settlement is later disputed.
+
+  `transport-leg`/`transport-leg-already-logged?` back this actor's
+  own THIRD-PARTY role (ADR-2800000700): this actor, as the CARRIER
+  in some OTHER isic-1075/jsic-4721/isic-5610/isic-4711/isic-4719/
+  isic-2710/isic-2813 handoff, independently records that IT
+  physically carried the leg a `:handoff/carrier-tracking-ref`
+  identifies -- keyed by that tracking ref, never by this actor's own
+  `shipment` id (the handoff's issuer/receiver own that identity, not
+  this actor)."
   (:require #?(:clj  [clojure.edn :as edn]
                :cljs [cljs.reader :as edn])
             [freightops.registry :as registry]
@@ -49,6 +58,8 @@
   (next-settlement-sequence [s jurisdiction] "next settlement-number sequence for a jurisdiction")
   (shipment-already-dispatched? [s shipment-id] "has this shipment already been dispatched?")
   (shipment-already-settled? [s shipment-id] "has this shipment's consignment already been settled?")
+  (transport-leg [s carrier-tracking-ref] "the committed :transport-leg/log record for a cross-actor handoff's carrier-tracking-ref (ADR-2800000700), or nil")
+  (transport-leg-already-logged? [s carrier-tracking-ref] "has this carrier-tracking-ref already had a transport leg logged for it?")
   (commit-record! [s record] "apply a committed op's record to the SSoT")
   (append-ledger! [s fact]   "append one immutable decision fact")
   (with-shipments [s shipments] "replace/seed the shipment directory (map id->shipment)"))
@@ -144,6 +155,8 @@
   (next-settlement-sequence [_ jurisdiction] (get-in @a [:settlement-sequences jurisdiction] 0))
   (shipment-already-dispatched? [_ shipment-id] (boolean (get-in @a [:shipments shipment-id :dispatched?])))
   (shipment-already-settled? [_ shipment-id] (boolean (get-in @a [:shipments shipment-id :settled?])))
+  (transport-leg [_ carrier-tracking-ref] (get-in @a [:transport-legs carrier-tracking-ref]))
+  (transport-leg-already-logged? [_ carrier-tracking-ref] (boolean (get-in @a [:transport-legs carrier-tracking-ref])))
   (commit-record! [s {:keys [effect path value payload]}]
     (case effect
       :shipment/upsert
@@ -151,6 +164,10 @@
 
       :assessment/set
       (swap! a assoc-in [:assessments (first path)] payload)
+
+      :transport-leg/upsert
+      (let [ref (:handoff/carrier-tracking-ref (:handoff value))]
+        (swap! a assoc-in [:transport-legs ref] value))
 
       :shipment/mark-dispatched
       (let [shipment-id (first path)
@@ -183,7 +200,7 @@
   default."
   []
   (->MemStore (atom (assoc (demo-data)
-                           :assessments {}
+                           :assessments {} :transport-legs {}
                            :ledger [] :dispatch-sequences {} :dispatches []
                            :settlement-sequences {} :settlements []))))
 
@@ -201,7 +218,8 @@
    :dispatch/seq                {:db/unique :db.unique/identity}
    :settlement/seq              {:db/unique :db.unique/identity}
    :dispatch-sequence/jurisdiction    {:db/unique :db.unique/identity}
-   :settlement-sequence/jurisdiction  {:db/unique :db.unique/identity}})
+   :settlement-sequence/jurisdiction  {:db/unique :db.unique/identity}
+   :transport-leg/carrier-tracking-ref {:db/unique :db.unique/identity}})
 
 (defn- enc [v] (pr-str v))
 (defn- dec* [s] (when s (edn/read-string s)))
@@ -288,6 +306,12 @@
     (boolean (:dispatched? (shipment s shipment-id))))
   (shipment-already-settled? [s shipment-id]
     (boolean (:settled? (shipment s shipment-id))))
+  (transport-leg [_ carrier-tracking-ref]
+    (dec* (d/q '[:find ?p . :in $ ?r
+                :where [?e :transport-leg/carrier-tracking-ref ?r] [?e :transport-leg/payload ?p]]
+              (d/db conn) carrier-tracking-ref)))
+  (transport-leg-already-logged? [s carrier-tracking-ref]
+    (boolean (transport-leg s carrier-tracking-ref)))
   (commit-record! [s {:keys [effect path value payload]}]
     (case effect
       :shipment/upsert
@@ -295,6 +319,10 @@
 
       :assessment/set
       (d/transact! conn [{:assessment/shipment-id (first path) :assessment/payload (enc payload)}])
+
+      :transport-leg/upsert
+      (let [ref (:handoff/carrier-tracking-ref (:handoff value))]
+        (d/transact! conn [{:transport-leg/carrier-tracking-ref ref :transport-leg/payload (enc value)}]))
 
       :shipment/mark-dispatched
       (let [shipment-id (first path)

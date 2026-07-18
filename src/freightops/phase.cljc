@@ -22,10 +22,19 @@
   enforces the same invariant independently -- two layers, not one,
   agree on this. Like every prior sibling's phase 3 `:auto` set, this
   domain has only ONE member (`:shipment/intake`) -- no separate
-  no-capital-risk 'file' lifecycle distinct from the shipment itself.")
+  no-capital-risk 'file' lifecycle distinct from the shipment itself.
+
+  `:transport-leg/log` (ADR-2800000700, this actor's own THIRD-PARTY
+  carrier-confirmation op over some OTHER actor's `:handoff`) is a
+  gated `write-ops` member like `:jurisdiction/assess` -- governor-
+  gated, enabled at phase 3, but likewise deliberately ABSENT from
+  every phase's `:auto` set: it always needs human approval when
+  governor-clean, same as `:jurisdiction/assess`. Do not add it to any
+  `:auto` set.")
 
 (def read-ops  #{})
-(def write-ops #{:shipment/intake :jurisdiction/assess :shipment/dispatch :consignment/settle})
+(def write-ops #{:shipment/intake :jurisdiction/assess :shipment/dispatch :consignment/settle
+                 :transport-leg/log})
 
 ;; NOTE the invariant: `:shipment/dispatch`/`:consignment/settle` are
 ;; members of `write-ops` (governor-gated like any write) but are

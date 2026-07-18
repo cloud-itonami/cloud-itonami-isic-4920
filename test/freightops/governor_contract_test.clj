@@ -165,3 +165,80 @@
       (exec-op actor "b" {:op :jurisdiction/assess :subject "shipment-1" :no-spec? true} operator)
       (is (= 2 (count (store/ledger db)))
           "one commit + one hold, both recorded"))))
+
+;; ----------------- :transport-leg/log (ADR-2800000700, carrier confirmation) -----------------
+;;
+;; This actor as THIRD-PARTY carrier for some OTHER isic-1075/jsic-
+;; 4721/isic-5610/isic-4711/isic-4719/isic-2710/isic-2813 handoff --
+;; the SAME `:handoff` wire shape (ADR-2607177600) extended with
+;; OPTIONAL `:handoff/carrier-actor`/`:handoff/carrier-tracking-ref`.
+
+(deftest transport-leg-log-missing-carrier-tracking-ref-is-held
+  (testing "no :handoff (or a :handoff with no :handoff/carrier-tracking-ref) -> HOLD, never reaches a human"
+    (let [[db actor] (fresh)
+          res (exec-op actor "tl1" {:op :transport-leg/log :subject "shipment-1"} operator)]
+      (is (= :hold (get-in res [:state :disposition])))
+      (is (not= :interrupted (:status res)))
+      (is (some #{:carrier-tracking-ref-missing} (-> (store/ledger db) last :basis))))))
+
+(deftest transport-leg-log-cold-chain-breach-is-held
+  (testing "actual-transport temperature outside the handoff's declared cold-chain window -> HOLD, unoverridable"
+    (let [[db actor] (fresh)
+          handoff {:handoff/id "h1" :handoff/source-actor "cloud-itonami-jsic-4721"
+                   :handoff/carrier-tracking-ref "trk-breach"
+                   :handoff/cold-chain-temp-min-c 2.0 :handoff/cold-chain-temp-max-c 10.0}
+          res (exec-op actor "tl2" {:op :transport-leg/log :subject "shipment-1" :handoff handoff
+                                    :actual-temp-min-c 12.0 :actual-temp-max-c 14.0} operator)]
+      (is (= :hold (get-in res [:state :disposition])))
+      (is (not= :interrupted (:status res)))
+      (is (some #{:cold-chain-breach} (-> (store/ledger db) last :basis)))
+      (is (nil? (store/transport-leg db "trk-breach")) "no transport-leg record written on hold"))))
+
+(deftest transport-leg-log-cold-chain-missing-reading-is-held
+  (testing "a declared cold-chain window with NO reported actual reading -> HOLD (an omitted reading is not evidence of a maintained cold chain)"
+    (let [[db actor] (fresh)
+          handoff {:handoff/id "h2" :handoff/source-actor "cloud-itonami-jsic-4721"
+                   :handoff/carrier-tracking-ref "trk-unreported"
+                   :handoff/cold-chain-temp-min-c 2.0 :handoff/cold-chain-temp-max-c 10.0}
+          res (exec-op actor "tl3" {:op :transport-leg/log :subject "shipment-1" :handoff handoff} operator)]
+      (is (= :hold (get-in res [:state :disposition])))
+      (is (some #{:cold-chain-breach} (-> (store/ledger db) last :basis))))))
+
+(deftest transport-leg-log-clean-cold-chain-escalates-then-commits
+  (testing "actual-transport temperature WITHIN the handoff's declared window still ALWAYS interrupts for human approval, then commits a transport-leg record keyed by carrier-tracking-ref"
+    (let [[db actor] (fresh)
+          handoff {:handoff/id "h3" :handoff/source-actor "cloud-itonami-jsic-4721"
+                   :handoff/carrier-tracking-ref "trk-clean"
+                   :handoff/cold-chain-temp-min-c 2.0 :handoff/cold-chain-temp-max-c 10.0}
+          r1 (exec-op actor "tl4" {:op :transport-leg/log :subject "shipment-1" :handoff handoff
+                                   :actual-temp-min-c 3.0 :actual-temp-max-c 6.0} operator)]
+      (is (= :interrupted (:status r1)) "pauses for human approval even when governor-clean")
+      (let [r2 (approve! actor "tl4")]
+        (is (= :commit (get-in r2 [:state :disposition])))
+        (is (some? (store/transport-leg db "trk-clean")))
+        (is (true? (store/transport-leg-already-logged? db "trk-clean")))))))
+
+(deftest transport-leg-log-no-declared-window-passes-through
+  (testing "a handoff with NO declared cold-chain window (ordinary, non-refrigerated freight) needs no actual-temp reading at all"
+    (let [[db actor] (fresh)
+          handoff {:handoff/id "h4" :handoff/source-actor "cloud-itonami-isic-4711"
+                   :handoff/carrier-tracking-ref "trk-ordinary"}
+          r1 (exec-op actor "tl5" {:op :transport-leg/log :subject "shipment-1" :handoff handoff} operator)]
+      (is (= :interrupted (:status r1)))
+      (let [r2 (approve! actor "tl5")]
+        (is (= :commit (get-in r2 [:state :disposition])))
+        (is (some? (store/transport-leg db "trk-ordinary")))))))
+
+(deftest transport-leg-log-double-log-is-held
+  (testing "logging the SAME :handoff/carrier-tracking-ref twice -> HOLD on the second attempt"
+    (let [[db actor] (fresh)
+          handoff {:handoff/id "h5" :handoff/source-actor "cloud-itonami-jsic-4721"
+                   :handoff/carrier-tracking-ref "trk-dup"
+                   :handoff/cold-chain-temp-min-c 2.0 :handoff/cold-chain-temp-max-c 10.0}
+          _ (exec-op actor "tl6a" {:op :transport-leg/log :subject "shipment-1" :handoff handoff
+                                   :actual-temp-min-c 3.0 :actual-temp-max-c 6.0} operator)
+          _ (approve! actor "tl6a")
+          res (exec-op actor "tl6" {:op :transport-leg/log :subject "shipment-1" :handoff handoff
+                                    :actual-temp-min-c 3.0 :actual-temp-max-c 6.0} operator)]
+      (is (= :hold (get-in res [:state :disposition])))
+      (is (some #{:transport-leg-already-logged} (-> (store/ledger db) last :basis))))))

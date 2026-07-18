@@ -186,3 +186,63 @@
   (when-let [sb (spec-basis iso3)]
     (when (:liability-owner-authority sb)
       (select-keys sb [:liability-owner-authority :liability-legal-basis :liability-provenance]))))
+
+;; ─────────────── Cross-Actor Handoff (isic-1075/jsic-4721/isic-5610/
+;; isic-4711/isic-4719/isic-2710/isic-2813 -> isic-4920, THIS actor as
+;; independent carrier) ───────────────
+;;
+;; A `:transport-leg/log` proposal's `:value` MAY carry a `:handoff`
+;; record -- the SAME wire shape documented in cloud-itonami-jsic-4721's
+;; `coldchain.facts`/superproject ADR-2607177600, extended by
+;; superproject ADR-2800000700 with two OPTIONAL fields
+;; `:handoff/carrier-actor`/`:handoff/carrier-tracking-ref`. Every
+;; existing handoff issuer/receiver (isic-1075, jsic-4721, isic-5610,
+;; isic-4711, isic-4719, isic-2710, isic-2813) ignores unknown map
+;; keys, so this extension required ZERO code changes on any of their
+;; sides -- see ADR-2800000700 for why:
+;;
+;;   {:handoff/id "..."
+;;    :handoff/source-actor "cloud-itonami-jsic-4721"
+;;    :handoff/batch-id "..."
+;;    :handoff/product-type-id :coldchain/c3-chilled
+;;    :handoff/cold-chain-temp-min-c 2.0
+;;    :handoff/cold-chain-temp-max-c 10.0
+;;    :handoff/quantity-kg 120.5
+;;    :handoff/dispatched-at-iso "..."
+;;    :handoff/carrier-actor "cloud-itonami-isic-4920"    ; NEW, OPTIONAL
+;;    :handoff/carrier-tracking-ref "..."}                ; NEW, OPTIONAL
+;;
+;; This actor validates its own INDEPENDENT half of the contract (no
+;; shared code, no shared store, the SAME asymmetric-optional design
+;; every cross-actor reference in this fleet uses): did THIS carrier's
+;; own REPORTED actual-transport temperature range
+;; (`:transport/actual-temp-min-c`/`max-c`, a `:transport-leg/log`-only
+;; proposal field, never invented by the handoff's issuer/receiver)
+;; stay within the handoff's DECLARED cold-chain window? A handoff
+;; carrying no declared window (ordinary, non-refrigerated freight)
+;; makes no cold-chain claim to keep, so no comparison is meaningful.
+
+(defn handoff-declares-cold-chain-window?
+  "Does `handoff` declare a cold-chain temperature window at all
+  (`:handoff/cold-chain-temp-min-c`/`max-c` both present)? False for
+  ordinary, non-refrigerated freight -- these OPTIONAL fields are
+  absent on purpose for a handoff with no cold-chain claim."
+  [handoff]
+  (boolean (and (some? (:handoff/cold-chain-temp-min-c handoff))
+                (some? (:handoff/cold-chain-temp-max-c handoff)))))
+
+(defn handoff-cold-chain-maintained?
+  "Positive-sense convenience predicate: did `actual-min-c`/
+  `actual-max-c` (THIS carrier's own reported transport temperature
+  range) stay WITHIN `handoff`'s declared `:handoff/cold-chain-temp-
+  min-c`/`max-c` window (inclusive)? A handoff with no declared window
+  is defined as trivially maintained -- nothing to violate. A declared
+  window with a MISSING actual reading is NOT trivially maintained --
+  an omitted reading is not evidence of a maintained cold chain, the
+  same 'never trust a self-report alone' discipline every governor
+  check in this actor already applies."
+  [handoff actual-min-c actual-max-c]
+  (or (not (handoff-declares-cold-chain-window? handoff))
+      (boolean (and (some? actual-min-c) (some? actual-max-c)
+                    (<= (:handoff/cold-chain-temp-min-c handoff) actual-min-c)
+                    (<= actual-max-c (:handoff/cold-chain-temp-max-c handoff))))))

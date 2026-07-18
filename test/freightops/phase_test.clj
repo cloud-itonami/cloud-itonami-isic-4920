@@ -33,3 +33,20 @@
 
 (deftest gate-holds-a-write-disabled-in-this-phase
   (is (= :hold (:disposition (phase/gate 0 {:op :shipment/intake} :commit)))))
+
+;; ----------------- :transport-leg/log (ADR-2800000700) -----------------
+
+(deftest transport-leg-log-never-auto-at-any-phase
+  (testing "structural invariant: no phase, now or in future entries, auto-commits a carrier's own transport-leg confirmation"
+    (doseq [[n {:keys [auto]}] phase/phases]
+      (is (not (contains? auto :transport-leg/log))
+          (str "phase " n " must not auto-commit :transport-leg/log")))))
+
+(deftest transport-leg-log-enabled-at-phase-3-only
+  (is (contains? (:writes (get phase/phases 3)) :transport-leg/log))
+  (is (not (contains? (:writes (get phase/phases 0)) :transport-leg/log)))
+  (is (not (contains? (:writes (get phase/phases 1)) :transport-leg/log)))
+  (is (not (contains? (:writes (get phase/phases 2)) :transport-leg/log))))
+
+(deftest gate-escalates-a-clean-transport-leg-log
+  (is (= :escalate (:disposition (phase/gate 3 {:op :transport-leg/log} :commit)))))

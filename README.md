@@ -176,7 +176,7 @@ ledger stack.
 | `src/freightops/registry.cljc` | Dispatch/settlement draft records, wrapping `kotoba.logistics`'s own `tracking-valid?` function rather than reimplementing it |
 | `src/freightops/facts.cljc` | Per-jurisdiction carrier-safety AND cargo-liability-disclosure catalog with an official spec-basis citation per entry, honest coverage reporting -- ALL EIGHT seeded jurisdictions have a liability sub-citation here |
 | `src/freightops/freightopsllm.cljc` | **FreightOps-LLM** -- `mock-advisor` ‖ `llm-advisor`; intake/jurisdiction-assessment/dispatch/settlement proposals |
-| `src/freightops/governor.cljc` | **Freight Governor** -- 6 HARD checks (spec-basis · evidence-incomplete · tracking-number-invalid, capability-lib reuse, the 73rd unconditional-evaluation-discipline grounding · pod-chain-integrity-broken, the 74th grounding · cargo-liability-disclosure-unconfirmed, FLAGSHIP NEW, the 75th grounding · delivery-exception-unresolved) + 2 double-actuation guards + 1 soft (confidence/actuation gate) |
+| `src/freightops/governor.cljc` | **Freight Governor** -- 6 HARD checks (spec-basis · evidence-incomplete · tracking-number-invalid, capability-lib reuse, the 73rd unconditional-evaluation-discipline grounding · pod-chain-integrity-broken, the 74th grounding · cargo-liability-disclosure-unconfirmed, FLAGSHIP NEW, the 75th grounding · delivery-exception-unresolved) + 2 double-actuation guards + 3 HARD checks for this actor's own THIRD-PARTY carrier role over an OTHER actor's `:handoff` (carrier-tracking-ref-missing · cold-chain-breach · transport-leg-already-logged, ADR-2800000700) + 1 soft (confidence/actuation gate) |
 | `src/freightops/phase.cljc` | **Phase 0→3** -- read-only → assisted intake → assisted assess → supervised (dispatch/settlement always human; shipment intake is the ONLY auto-eligible op, no direct capital risk) |
 | `src/freightops/operation.cljc` | **OperationActor** -- langgraph StateGraph |
 | `src/freightops/sim.cljc` | demo driver |
@@ -195,12 +195,45 @@ blueprint's own `docs/business-model.md` names in its Offer:
 | Shipment dispatch, HARD-gated on full evidence, a valid tracking number and an intact POD chain, plus a double-dispatch guard (`:actuation/dispatch-shipment`) | |
 | Consignment settlement, HARD-gated on full evidence, a confirmed cargo-liability disclosure and no unresolved delivery exception, plus a double-settlement guard (`:actuation/settle-consignment`) | |
 | Immutable audit ledger for every intake/assessment/dispatch/settlement decision | |
+| Third-party carrier confirmation of an OTHER cross-actor `:handoff`'s transport leg, HARD-gated on a resolvable carrier-tracking-ref and (when the handoff declares one) a maintained cold-chain window, plus a double-log guard (`:transport-leg/log`, ADR-2800000700) | |
 
 Extending coverage is additive: add the next gate (e.g. a driver
 hours-of-service check) as its own governed op with its own HARD
 checks and tests, following the SAME "an independent governor re-
 verifies against the actor's own records before any real-world act"
 pattern this repo's flagship ops already establish.
+
+### Cross-actor handoff carrier confirmation (`:transport-leg/log`)
+
+This actor is not only an ISSUER of shipments -- it is also, from
+several OTHER `cloud-itonami-isic-*`/`-jsic-*` actors' point of view,
+the CARRIER that physically moves a handed-off batch/consignment
+between them (isic-1075⇔jsic-4721, jsic-4721⇔isic-5610/isic-4711/
+isic-4719, isic-2710⇔isic-2813 -- superproject ADR-2607177600/
+ADR-2800000000/ADR-2800000500). Those actors' own shared `:handoff`
+wire shape gained two OPTIONAL fields, `:handoff/carrier-actor`/
+`:handoff/carrier-tracking-ref` (superproject ADR-2800000700) --
+**no code change on any of their sides was needed**, since every
+existing handoff issuer/receiver already ignores unknown map keys.
+
+`:transport-leg/log` is THIS actor's own independent record that it
+carried the leg a `:handoff/carrier-tracking-ref` identifies:
+
+- `carrier-tracking-ref-missing` (HARD) -- no `:handoff` at all, or a
+  `:handoff` with no `:handoff/carrier-tracking-ref`.
+- `cold-chain-breach` (HARD) -- when the referenced handoff declares
+  a cold-chain temperature window (`:handoff/cold-chain-temp-min-c`/
+  `max-c`, optional per ADR-2607177600), this carrier's own reported
+  `:transport/actual-temp-min-c`/`max-c` must have stayed within it
+  (`freightops.facts/handoff-cold-chain-maintained?`) -- an omitted
+  reading counts as a breach, never a pass. Ordinary (non-
+  refrigerated) handoffs need no comparison.
+- `transport-leg-already-logged` (double-log guard) -- refuses to log
+  the SAME `:handoff/carrier-tracking-ref` twice.
+
+Like `:jurisdiction/assess`, `:transport-leg/log` is governor-gated
+and enabled at phase 3, but deliberately never a member of any
+phase's `:auto` set -- it always routes to a human, even when clean.
 
 ## Jurisdiction coverage (honest)
 

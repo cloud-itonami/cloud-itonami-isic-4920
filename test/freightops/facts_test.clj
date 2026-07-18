@@ -37,3 +37,29 @@
     (is (facts/required-evidence-satisfied? "JPN" all))
     (is (not (facts/required-evidence-satisfied? "JPN" (rest all))))
     (is (not (facts/required-evidence-satisfied? "ATL" all)) "no spec-basis -> never satisfied")))
+
+;; ----------------- Cross-Actor Handoff carrier confirmation (ADR-2800000700) -----------------
+
+(deftest handoff-declares-cold-chain-window-only-when-both-bounds-present
+  (is (facts/handoff-declares-cold-chain-window?
+       {:handoff/cold-chain-temp-min-c 2.0 :handoff/cold-chain-temp-max-c 10.0}))
+  (is (not (facts/handoff-declares-cold-chain-window? {})))
+  (is (not (facts/handoff-declares-cold-chain-window? {:handoff/cold-chain-temp-min-c 2.0})))
+  (is (not (facts/handoff-declares-cold-chain-window? nil))))
+
+(deftest handoff-cold-chain-maintained-with-no-declared-window-is-trivially-true
+  (is (facts/handoff-cold-chain-maintained? {} nil nil))
+  (is (facts/handoff-cold-chain-maintained? nil nil nil)))
+
+(deftest handoff-cold-chain-maintained-checks-declared-window-inclusively
+  (let [handoff {:handoff/cold-chain-temp-min-c 2.0 :handoff/cold-chain-temp-max-c 10.0}]
+    (is (facts/handoff-cold-chain-maintained? handoff 2.0 10.0) "bounds themselves are within range")
+    (is (facts/handoff-cold-chain-maintained? handoff 3.0 6.0))
+    (is (not (facts/handoff-cold-chain-maintained? handoff 1.9 10.0)))
+    (is (not (facts/handoff-cold-chain-maintained? handoff 2.0 10.1)))))
+
+(deftest handoff-cold-chain-maintained-missing-actual-reading-is-not-maintained
+  (let [handoff {:handoff/cold-chain-temp-min-c 2.0 :handoff/cold-chain-temp-max-c 10.0}]
+    (is (not (facts/handoff-cold-chain-maintained? handoff nil nil)))
+    (is (not (facts/handoff-cold-chain-maintained? handoff 3.0 nil)))
+    (is (not (facts/handoff-cold-chain-maintained? handoff nil 6.0)))))

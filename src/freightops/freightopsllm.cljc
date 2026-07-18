@@ -127,6 +127,34 @@
      :stake      :actuation/settle-consignment
      :confidence (if (and liability-ok? no-exception?) 0.9 0.3)}))
 
+(defn- propose-transport-leg-log
+  "Draft a `:transport-leg/log` record -- THIS actor's OWN independent
+  confirmation that IT physically carried the leg an upstream/
+  downstream actor's `:handoff` record describes (wire shape:
+  superproject ADR-2607177600, extended by ADR-2800000700 with
+  OPTIONAL `:handoff/carrier-actor`/`:handoff/carrier-tracking-ref`).
+  The LLM only normalizes/passes through the caller-supplied `handoff`
+  and `actual-temp-min-c`/`actual-temp-max-c` -- it does not invent
+  either. The Freight Governor's `cold-chain-breach-violations`
+  INDEPENDENTLY re-verifies the reported reading against the handoff's
+  own declared cold-chain window (`freightops.facts/handoff-cold-
+  chain-maintained?`) before this can ever commit; a fabricated 'in
+  range' self-report from this LLM is not trusted."
+  [_db {:keys [subject handoff actual-temp-min-c actual-temp-max-c]}]
+  {:summary    (str subject " の輸送実績記録: carrier-tracking-ref="
+                    (:handoff/carrier-tracking-ref handoff))
+   :rationale  (if handoff
+                 "呼び出し元が渡した handoff 参照 + 実測温度の記録のみ。新規事実の生成なし。"
+                 "handoff 参照が渡されていません。")
+   :cites      (if handoff [(:handoff/carrier-tracking-ref handoff)] [])
+   :effect     :transport-leg/upsert
+   :value      {:shipment-id subject
+                :handoff handoff
+                :transport/actual-temp-min-c actual-temp-min-c
+                :transport/actual-temp-max-c actual-temp-max-c}
+   :stake      nil
+   :confidence (if handoff 0.9 0.2)})
+
 (defn infer
   "Route a request to the right proposal generator.
   request: {:op kw :subject id ...op-specific...}"
@@ -136,6 +164,7 @@
     :jurisdiction/assess             (assess-jurisdiction db request)
     :shipment/dispatch                   (propose-shipment-dispatch db request)
     :consignment/settle                      (propose-consignment-settlement db request)
+    :transport-leg/log                           (propose-transport-leg-log db request)
     {:summary "未対応の操作" :rationale (str op) :cites []
      :effect :noop :stake nil :confidence 0.0}))
 
@@ -155,7 +184,7 @@
        "キー: :summary(人向けドラフト) :rationale(根拠/必ず事実から) "
        ":cites(使った事実キーのベクタ) "
        ":effect(:shipment/upsert|:assessment/set|:shipment/mark-dispatched|"
-       ":shipment/mark-settled) "
+       ":shipment/mark-settled|:transport-leg/upsert) "
        ":stake(:actuation/dispatch-shipment か :actuation/settle-consignment か nil) :confidence(0..1)。\n"
        "重要: 登録されていない法域の要件を絶対に創作してはいけません。"
        "spec-basisが無い場合は :cites を空にし confidence を上げないこと。"
@@ -166,6 +195,7 @@
     :jurisdiction/assess    {:shipment (store/shipment st subject)}
     :shipment/dispatch      {:shipment (store/shipment st subject)}
     :consignment/settle     {:shipment (store/shipment st subject)}
+    :transport-leg/log      {:shipment (store/shipment st subject)}
     {:shipment (store/shipment st subject)}))
 
 (defn- parse-proposal

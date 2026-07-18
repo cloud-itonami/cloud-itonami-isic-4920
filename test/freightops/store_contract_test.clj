@@ -69,6 +69,26 @@
         (store/append-ledger! s {:op :b :disposition :hold})
         (is (= [:commit :hold] (mapv :disposition (store/ledger s))))))))
 
+(deftest transport-leg-read-parity
+  (testing "a fresh store has no transport-leg record for any carrier-tracking-ref (ADR-2800000700)"
+    (doseq [[label s] (backends)]
+      (testing label
+        (is (nil? (store/transport-leg s "trk-none")))
+        (is (false? (store/transport-leg-already-logged? s "trk-none")))))))
+
+(deftest transport-leg-write-parity
+  (testing "committing :transport-leg/upsert writes a record keyed by :handoff/carrier-tracking-ref, on both backends"
+    (doseq [[label s] (backends)]
+      (testing label
+        (let [value {:shipment-id "shipment-1"
+                     :handoff {:handoff/id "h1" :handoff/carrier-tracking-ref "trk-1"
+                               :handoff/cold-chain-temp-min-c 2.0 :handoff/cold-chain-temp-max-c 10.0}
+                     :transport/actual-temp-min-c 3.0 :transport/actual-temp-max-c 6.0}]
+          (store/commit-record! s {:effect :transport-leg/upsert :path ["shipment-1"] :value value})
+          (is (= value (store/transport-leg s "trk-1")))
+          (is (true? (store/transport-leg-already-logged? s "trk-1")))
+          (is (false? (store/transport-leg-already-logged? s "trk-other")) "a different tracking-ref is unaffected"))))))
+
 (deftest datomic-empty-store-is-usable
   (let [s (store/datomic-store)]
     (is (nil? (store/shipment s "nope")))

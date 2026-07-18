@@ -159,7 +159,38 @@
   facts (never a `:status` value) -- the SAME 'check a dedicated
   boolean, not status' discipline every prior governor's guards
   establish, informed by `cloud-itonami-isic-6492`'s status-lifecycle
-  bug (ADR-2607071320)."
+  bug (ADR-2607071320).
+
+  Three more checks, ALL HARD, guard the NEW `:transport-leg/log` op
+  (superproject ADR-2800000700): this actor, as the CARRIER in some
+  OTHER isic-1075/jsic-4721/isic-5610/isic-4711/isic-4719/isic-2710/
+  isic-2813 handoff, independently confirms it physically carried the
+  leg a `:handoff` record describes -- a THIRD-PARTY confirmation, not
+  the dispatch/settlement acts above, so it never joins `high-stakes`.
+
+    8. Carrier-tracking-ref missing -- `carrier-tracking-ref-missing-
+       violations`: a `:transport-leg/log` proposal whose `:value` has
+       no `:handoff` map, or a `:handoff` with no `:handoff/carrier-
+       tracking-ref` -- there is no way to tell WHICH cross-actor
+       handoff this leg-completion record is even about. Evaluated
+       UNCONDITIONALLY.
+    9. Cold-chain breach -- `cold-chain-breach-violations`: when the
+       referenced handoff declares a cold-chain temperature window
+       (`:handoff/cold-chain-temp-min-c`/`max-c`, OPTIONAL per
+       ADR-2607177600), this carrier's own REPORTED actual-transport
+       temperature range (`:transport/actual-temp-min-c`/`max-c`) must
+       have stayed within it (`freightops.facts/handoff-cold-chain-
+       maintained?`) -- an omitted reading counts as a breach, the
+       same 'never trust a self-report alone' discipline as every
+       check above. A handoff with NO declared window (ordinary,
+       non-refrigerated freight) needs no comparison. Evaluated
+       UNCONDITIONALLY whenever the referenced handoff declares a
+       window.
+    10. Transport leg already logged -- `already-logged-violations`:
+        refuses to log a transport leg for the SAME `:handoff/carrier-
+        tracking-ref` twice, off a dedicated store lookup
+        (`store/transport-leg-already-logged?`), the SAME 'dedicated
+        boolean, not status' discipline as guard 8 above."
   (:require [freightops.facts :as facts]
             [freightops.registry :as registry]
             [freightops.store :as store]))
@@ -274,6 +305,56 @@
       [{:rule :already-settled
         :detail (str subject " は既に精算済み")}])))
 
+(defn- carrier-tracking-ref-missing-violations
+  "For `:transport-leg/log`, a proposal whose `:value` has no
+  `:handoff` map, or a `:handoff` with no `:handoff/carrier-tracking-
+  ref`, cannot be tied to any cross-actor handoff at all -- there is
+  no way to tell WHICH handoff this leg-completion record is about.
+  Evaluated UNCONDITIONALLY."
+  [{:keys [op]} proposal]
+  (when (= op :transport-leg/log)
+    (let [handoff (:handoff (:value proposal))]
+      (when (nil? (:handoff/carrier-tracking-ref handoff))
+        [{:rule :carrier-tracking-ref-missing
+          :detail "参照する handoff の :handoff/carrier-tracking-ref が無い -- どのhandoffの輸送実績かを追跡できない提案は記録できない"}]))))
+
+(defn- cold-chain-breach-violations
+  "For `:transport-leg/log`, when the referenced handoff declares a
+  cold-chain temperature window, INDEPENDENTLY verify this carrier's
+  own reported actual-transport temperature range stayed within it
+  (`freightops.facts/handoff-cold-chain-maintained?`) -- an omitted
+  reading counts as a breach, never a pass. A handoff with no declared
+  window (ordinary, non-refrigerated freight) needs no comparison.
+  Evaluated UNCONDITIONALLY whenever the referenced handoff declares a
+  window."
+  [{:keys [op]} proposal]
+  (when (= op :transport-leg/log)
+    (let [value (:value proposal)
+          handoff (:handoff value)
+          actual-min (:transport/actual-temp-min-c value)
+          actual-max (:transport/actual-temp-max-c value)]
+      (when (and (facts/handoff-declares-cold-chain-window? handoff)
+                 (not (facts/handoff-cold-chain-maintained? handoff actual-min actual-max)))
+        [{:rule :cold-chain-breach
+          :detail (str (:handoff/carrier-tracking-ref handoff) " の実測輸送温度("
+                       (or actual-min "?") "~" (or actual-max "?") "℃、未報告は?)が"
+                       "宣言済みコールドチェーン窓(" (:handoff/cold-chain-temp-min-c handoff)
+                       "~" (:handoff/cold-chain-temp-max-c handoff)
+                       "℃)を維持できていない")}]))))
+
+(defn- already-logged-violations
+  "For `:transport-leg/log`, refuses to log a transport leg for the
+  SAME `:handoff/carrier-tracking-ref` twice, off a dedicated store
+  lookup (`store/transport-leg-already-logged?`), the SAME 'dedicated
+  boolean, not status' discipline `already-dispatched-violations`/
+  `already-settled-violations` establish."
+  [{:keys [op]} proposal st]
+  (when (= op :transport-leg/log)
+    (let [ref (:handoff/carrier-tracking-ref (:handoff (:value proposal)))]
+      (when (and ref (store/transport-leg-already-logged? st ref))
+        [{:rule :transport-leg-already-logged
+          :detail (str ref " は既に輸送実績記録済み")}]))))
+
 (defn check
   "Censors a FreightOps-LLM proposal against the governor rules.
   Returns {:ok? bool :violations [..] :confidence c :escalate? bool
@@ -287,7 +368,10 @@
                            (cargo-liability-disclosure-violations request st)
                            (delivery-exception-unresolved-violations request st)
                            (already-dispatched-violations request st)
-                           (already-settled-violations request st)))
+                           (already-settled-violations request st)
+                           (carrier-tracking-ref-missing-violations request proposal)
+                           (cold-chain-breach-violations request proposal)
+                           (already-logged-violations request proposal st)))
         conf (:confidence proposal 0.0)
         low? (< conf confidence-floor)
         stakes? (boolean (high-stakes (:stake proposal)))
