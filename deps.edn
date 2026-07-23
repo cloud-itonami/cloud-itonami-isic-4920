@@ -15,7 +15,9 @@
  :deps {io.github.kotoba-lang/langgraph
         {:local/root "../../kotoba-lang/langgraph"}
         io.github.kotoba-lang/logistics
-        {:local/root "../../kotoba-lang/logistics"}}
+        {:local/root "../../kotoba-lang/logistics"}
+        io.github.kotoba-lang/langchain-store
+        {:local/root "../../kotoba-lang/langchain-store"}}
  :aliases
  {;; offline workspace dev -- pin transitive langchain to local checkout
   :dev {:override-deps

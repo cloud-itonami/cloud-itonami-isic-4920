@@ -42,10 +42,9 @@
   identifies -- keyed by that tracking ref, never by this actor's own
   `shipment` id (the handoff's issuer/receiver own that identity, not
   this actor)."
-  (:require #?(:clj  [clojure.edn :as edn]
-               :cljs [cljs.reader :as edn])
-            [freightops.registry :as registry]
-            [langchain.db :as d]))
+  (:require [freightops.registry :as registry]
+            [langchain.db :as d]
+            [langchain-store.core :as ls]))
 
 (defprotocol Store
   (shipment [s id])
@@ -221,9 +220,6 @@
    :settlement-sequence/jurisdiction  {:db/unique :db.unique/identity}
    :transport-leg/carrier-tracking-ref {:db/unique :db.unique/identity}})
 
-(defn- enc [v] (pr-str v))
-(defn- dec* [s] (when s (edn/read-string s)))
-
 (defn- shipment->tx [{:keys [id tracking origin destination carrier mode declared-value
                             prior-leg-pod-confirmed? liability-disclosure-confirmed?
                             exception-raised? exception-resolved?
@@ -277,21 +273,21 @@
          (map #(pull->shipment (d/pull (d/db conn) shipment-pull [:shipment/id %])))
          (sort-by :id)))
   (assessment-of [_ shipment-id]
-    (dec* (d/q '[:find ?p . :in $ ?sid
+    (ls/dec* (d/q '[:find ?p . :in $ ?sid
                 :where [?a :assessment/shipment-id ?sid] [?a :assessment/payload ?p]]
               (d/db conn) shipment-id)))
   (ledger [_]
     (->> (d/q '[:find ?s ?f :where [?e :ledger/seq ?s] [?e :ledger/fact ?f]] (d/db conn))
          (sort-by first)
-         (mapv (comp dec* second))))
+         (mapv (comp ls/dec* second))))
   (dispatch-history [_]
     (->> (d/q '[:find ?s ?r :where [?e :dispatch/seq ?s] [?e :dispatch/record ?r]] (d/db conn))
          (sort-by first)
-         (mapv (comp dec* second))))
+         (mapv (comp ls/dec* second))))
   (settlement-history [_]
     (->> (d/q '[:find ?s ?r :where [?e :settlement/seq ?s] [?e :settlement/record ?r]] (d/db conn))
          (sort-by first)
-         (mapv (comp dec* second))))
+         (mapv (comp ls/dec* second))))
   (next-dispatch-sequence [_ jurisdiction]
     (or (d/q '[:find ?n . :in $ ?j
               :where [?e :dispatch-sequence/jurisdiction ?j] [?e :dispatch-sequence/next ?n]]
@@ -307,7 +303,7 @@
   (shipment-already-settled? [s shipment-id]
     (boolean (:settled? (shipment s shipment-id))))
   (transport-leg [_ carrier-tracking-ref]
-    (dec* (d/q '[:find ?p . :in $ ?r
+    (ls/dec* (d/q '[:find ?p . :in $ ?r
                 :where [?e :transport-leg/carrier-tracking-ref ?r] [?e :transport-leg/payload ?p]]
               (d/db conn) carrier-tracking-ref)))
   (transport-leg-already-logged? [s carrier-tracking-ref]
@@ -318,11 +314,11 @@
       (d/transact! conn [(shipment->tx value)])
 
       :assessment/set
-      (d/transact! conn [{:assessment/shipment-id (first path) :assessment/payload (enc payload)}])
+      (d/transact! conn [{:assessment/shipment-id (first path) :assessment/payload (ls/enc payload)}])
 
       :transport-leg/upsert
       (let [ref (:handoff/carrier-tracking-ref (:handoff value))]
-        (d/transact! conn [{:transport-leg/carrier-tracking-ref ref :transport-leg/payload (enc value)}]))
+        (d/transact! conn [{:transport-leg/carrier-tracking-ref ref :transport-leg/payload (ls/enc value)}]))
 
       :shipment/mark-dispatched
       (let [shipment-id (first path)
@@ -332,7 +328,7 @@
         (d/transact! conn
                      [(shipment->tx (assoc shipment-patch :id shipment-id))
                       {:dispatch-sequence/jurisdiction jurisdiction :dispatch-sequence/next next-n}
-                      {:dispatch/seq (count (dispatch-history s)) :dispatch/record (enc (get result "record"))}])
+                      {:dispatch/seq (count (dispatch-history s)) :dispatch/record (ls/enc (get result "record"))}])
         result)
 
       :shipment/mark-settled
@@ -343,12 +339,12 @@
         (d/transact! conn
                      [(shipment->tx (assoc shipment-patch :id shipment-id))
                       {:settlement-sequence/jurisdiction jurisdiction :settlement-sequence/next next-n}
-                      {:settlement/seq (count (settlement-history s)) :settlement/record (enc (get result "record"))}])
+                      {:settlement/seq (count (settlement-history s)) :settlement/record (ls/enc (get result "record"))}])
         result)
       nil)
     s)
   (append-ledger! [s fact]
-    (d/transact! conn [{:ledger/seq (count (ledger s)) :ledger/fact (enc fact)}])
+    (d/transact! conn [{:ledger/seq (count (ledger s)) :ledger/fact (ls/enc fact)}])
     fact)
   (with-shipments [s shipments]
     (when (seq shipments) (d/transact! conn (mapv shipment->tx (vals shipments)))) s))
