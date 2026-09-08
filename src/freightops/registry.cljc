@@ -26,7 +26,7 @@
   consignment itself (that is `freightops.operation`'s `:shipment/
   dispatch`/`:consignment/settle`, always human-gated -- see README
   `Actuation`)."
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [kotoba.logistics :as logistics]))
 
 (defn- unsigned-certificate
@@ -66,7 +66,7 @@
     (throw (ex-info "shipment-dispatch: jurisdiction required" {})))
   (when (< sequence 0)
     (throw (ex-info "shipment-dispatch: sequence must be >= 0" {})))
-  (let [dispatch-number (str (str/upper-case jurisdiction) "-DIS-" (zero-pad sequence 6))
+  (let [dispatch-number (str (str/upper jurisdiction) "-DIS-" (zero-pad sequence 6))
         record {"record_id" dispatch-number
                 "kind" "shipment-dispatch-draft"
                 "shipment_id" shipment-id
@@ -90,7 +90,7 @@
     (throw (ex-info "consignment-settlement: jurisdiction required" {})))
   (when (< sequence 0)
     (throw (ex-info "consignment-settlement: sequence must be >= 0" {})))
-  (let [settlement-number (str (str/upper-case jurisdiction) "-SET-" (zero-pad sequence 6))
+  (let [settlement-number (str (str/upper jurisdiction) "-SET-" (zero-pad sequence 6))
         record {"record_id" settlement-number
                 "kind" "consignment-settlement-draft"
                 "shipment_id" shipment-id
