@@ -1,5 +1,5 @@
 (ns freightops.sim
-  "Demo driver -- `clojure -M:dev:run`. Walks a clean shipment through
+  "Demo driver -- `kbb -M:dev:run`. Walks a clean shipment through
   intake -> jurisdiction assessment -> shipment dispatch (escalate/
   approve/commit) -> consignment settlement (escalate/approve/commit),
   then shows HARD-hold scenarios: a jurisdiction with no spec-basis, an
