@@ -28,7 +28,7 @@
   `freightops.store/demo-data` (some sibling repos' sims do not).
   The `:transport-leg/log` handoff fixtures (`trk-breach`/`trk-clean`,
   window 2.0-10.0 C) are this repo's OWN, lifted verbatim from
-  `test/freightops/governor_contract_test.clj`, not invented here.
+  `test/freightops/governor_contract_test.cljk`, not invented here.
 
   Determinism: nothing in this stack carries a timestamp or a random
   value -- `freightops.registry` builds jurisdiction-scoped sequence
@@ -134,7 +134,7 @@
         actor (op/build db)
         runs (atom [])
         ;; This repo's OWN handoff fixtures -- copied verbatim from
-        ;; test/freightops/governor_contract_test.clj, not invented here.
+        ;; test/freightops/governor_contract_test.cljk, not invented here.
         cold-window {:handoff/cold-chain-temp-min-c 2.0
                      :handoff/cold-chain-temp-max-c 10.0}
         breach-handoff (merge {:handoff/id "h1"

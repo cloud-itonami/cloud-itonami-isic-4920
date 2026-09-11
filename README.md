@@ -77,7 +77,7 @@ layers enforce this (`freightops.governor`'s `:actuation/dispatch-
 shipment`/`:actuation/settle-consignment` high-stakes gate and
 `freightops.phase`'s phase table, which never puts either op in any
 phase's `:auto` set) -- see `freightops.phase`'s docstring and
-`test/freightops/phase_test.clj`'s `shipment-dispatch-never-auto-at-
+`test/freightops/phase_test.cljk`'s `shipment-dispatch-never-auto-at-
 any-phase`/`consignment-settle-never-auto-at-any-phase`. The actor may
 draft, check and recommend; a human carrier dispatcher is always the
 one who actually dispatches a shipment or settles a consignment.
@@ -172,14 +172,14 @@ ledger stack.
 
 | File | Role |
 |---|---|
-| `src/freightops/store.cljc` | **Store** protocol -- `MemStore` ‖ `DatomicStore` (`langchain.db`) + append-only audit ledger + dispatch AND settlement history (dual history). The double-actuation guard checks dedicated `:dispatched?`/`:settled?` booleans rather than a `:status` value |
-| `src/freightops/registry.cljc` | Dispatch/settlement draft records, wrapping `kotoba.logistics`'s own `tracking-valid?` function rather than reimplementing it |
-| `src/freightops/facts.cljc` | Per-jurisdiction carrier-safety AND cargo-liability-disclosure catalog with an official spec-basis citation per entry, honest coverage reporting -- ALL EIGHT seeded jurisdictions have a liability sub-citation here |
-| `src/freightops/freightopsllm.cljc` | **FreightOps-LLM** -- `mock-advisor` ‖ `llm-advisor`; intake/jurisdiction-assessment/dispatch/settlement proposals |
-| `src/freightops/governor.cljc` | **Freight Governor** -- 6 HARD checks (spec-basis · evidence-incomplete · tracking-number-invalid, capability-lib reuse, the 73rd unconditional-evaluation-discipline grounding · pod-chain-integrity-broken, the 74th grounding · cargo-liability-disclosure-unconfirmed, FLAGSHIP NEW, the 75th grounding · delivery-exception-unresolved) + 2 double-actuation guards + 3 HARD checks for this actor's own THIRD-PARTY carrier role over an OTHER actor's `:handoff` (carrier-tracking-ref-missing · cold-chain-breach · transport-leg-already-logged, ADR-2800000700) + 1 soft (confidence/actuation gate) |
-| `src/freightops/phase.cljc` | **Phase 0→3** -- read-only → assisted intake → assisted assess → supervised (dispatch/settlement always human; shipment intake is the ONLY auto-eligible op, no direct capital risk) |
-| `src/freightops/operation.cljc` | **OperationActor** -- langgraph StateGraph |
-| `src/freightops/sim.cljc` | demo driver |
+| `src/freightops/store.cljk` | **Store** protocol -- `MemStore` ‖ `DatomicStore` (`langchain.db`) + append-only audit ledger + dispatch AND settlement history (dual history). The double-actuation guard checks dedicated `:dispatched?`/`:settled?` booleans rather than a `:status` value |
+| `src/freightops/registry.cljk` | Dispatch/settlement draft records, wrapping `kotoba.logistics`'s own `tracking-valid?` function rather than reimplementing it |
+| `src/freightops/facts.cljk` | Per-jurisdiction carrier-safety AND cargo-liability-disclosure catalog with an official spec-basis citation per entry, honest coverage reporting -- ALL EIGHT seeded jurisdictions have a liability sub-citation here |
+| `src/freightops/freightopsllm.cljk` | **FreightOps-LLM** -- `mock-advisor` ‖ `llm-advisor`; intake/jurisdiction-assessment/dispatch/settlement proposals |
+| `src/freightops/governor.cljk` | **Freight Governor** -- 6 HARD checks (spec-basis · evidence-incomplete · tracking-number-invalid, capability-lib reuse, the 73rd unconditional-evaluation-discipline grounding · pod-chain-integrity-broken, the 74th grounding · cargo-liability-disclosure-unconfirmed, FLAGSHIP NEW, the 75th grounding · delivery-exception-unresolved) + 2 double-actuation guards + 3 HARD checks for this actor's own THIRD-PARTY carrier role over an OTHER actor's `:handoff` (carrier-tracking-ref-missing · cold-chain-breach · transport-leg-already-logged, ADR-2800000700) + 1 soft (confidence/actuation gate) |
+| `src/freightops/phase.cljk` | **Phase 0→3** -- read-only → assisted intake → assisted assess → supervised (dispatch/settlement always human; shipment intake is the ONLY auto-eligible op, no direct capital risk) |
+| `src/freightops/operation.cljk` | **OperationActor** -- langgraph StateGraph |
+| `src/freightops/sim.cljk` | demo driver |
 | `test/freightops/*_test.clj` | governor contract · phase invariants · store parity · registry conformance · facts coverage |
 
 ## Business-process coverage (honest)
