@@ -129,7 +129,7 @@ prior governor's guards establish, informed by `cloud-itonami-isic-
 `freightops.store/Store` is implemented by both `MemStore` (atom-
 backed, default for dev/tests/demo) and `DatomicStore` (`langchain.
 db`-backed), proven to satisfy the same contract in
-`test/freightops/store_contract_test.clj`.
+`test/freightops/store_contract_test.cljk`.
 
 ### Decision 10: `blueprint.edn` field-sync fix, and scoped-down R0
 
@@ -173,7 +173,7 @@ required.
   broken?` (74th), and `cargo-liability-disclosure-unconfirmed?`
   (FLAGSHIP, 75th).
 - `MemStore` ‖ `DatomicStore` parity is proven by
-  `test/freightops/store_contract_test.clj`.
+  `test/freightops/store_contract_test.cljk`.
 - 37 tests / 180 assertions pass; lint is clean; the demo
   (`clojure -M:dev:run`) walks one clean dispatch + settlement
   lifecycle, plus five HARD-hold scenarios, end-to-end.
