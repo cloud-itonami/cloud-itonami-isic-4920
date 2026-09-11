@@ -175,7 +175,7 @@ required.
 - `MemStore` ‖ `DatomicStore` parity is proven by
   `test/freightops/store_contract_test.cljk`.
 - 37 tests / 180 assertions pass; lint is clean; the demo
-  (`clojure -M:dev:run`) walks one clean dispatch + settlement
+  (`kbb -M:dev:run`) walks one clean dispatch + settlement
   lifecycle, plus five HARD-hold scenarios, end-to-end.
 - `blueprint.edn` required a field-sync fix (`:robotics` missing from
   `:required-technologies`) in addition to the `:maturity` flip.
