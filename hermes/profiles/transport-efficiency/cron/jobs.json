@@ -1,0 +1,48 @@
+{
+  "jobs": [
+    {
+      "base_url": null,
+      "context_from": null,
+      "deliver": "local",
+      "enabled": true,
+      "enabled_toolsets": null,
+      "id": "2c8b1a4d8a9d",
+      "model": "qwen3.8-27b-whitehacker",
+      "name": "transport-tick",
+      "no_agent": false,
+      "prompt": "transport_evidence.py の結果を読んで 1 つの transport 効率の観測を提案。出典と日付を必ず記す。",
+      "provider": "kotoba",
+      "schedule": {
+        "kind": "interval",
+        "minutes": 120,
+        "display": "every 120m"
+      },
+      "script": "transport_evidence.py",
+      "skill": null,
+      "skills": [],
+      "workdir": null
+    },
+    {
+      "base_url": "https://api.kotoba.cloud/v1",
+      "context_from": null,
+      "deliver": "local",
+      "enabled": false,
+      "enabled_toolsets": null,
+      "id": "143dce933d4f",
+      "model": "qwen3.8-flash-next-whitehacker",
+      "name": "transport-efficiency tick (murakumo-only)",
+      "no_agent": true,
+      "prompt": "",
+      "provider": "kotoba",
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 */6 * * *",
+        "display": "0 */6 * * *"
+      },
+      "script": "transport_tick.py",
+      "skill": null,
+      "skills": [],
+      "workdir": null
+    }
+  ]
+}
