@@ -7,11 +7,11 @@
       "enabled": true,
       "enabled_toolsets": null,
       "id": "2c8b1a4d8a9d",
-      "model": "qwen3.8-27b-whitehacker",
+      "model": "murakumo/free",
       "name": "transport-tick",
       "no_agent": false,
       "prompt": "transport_evidence.py の結果を読んで 1 つの transport 効率の観測を提案。出典と日付を必ず記す。",
-      "provider": "kotoba",
+      "provider": "murakumo",
       "schedule": {
         "kind": "interval",
         "minutes": 120,
