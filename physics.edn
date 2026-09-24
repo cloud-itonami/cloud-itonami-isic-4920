@@ -1,0 +1,43 @@
+;; What this vertical's robot physically does, declared for
+;; kotoba.robotics.process (kotoba-lang/robotics). `kbb -M:dev:physics` runs it.
+;;
+;; README "Robotics premise": an autonomous delivery vehicle or last-mile
+;; robot performs the physical movement of freight for a local road carrier
+;; (ISIC 4920). Here: the loaded autonomous van's emergency stop on an urban
+;; street (speed decides stopping distance), a parcel handed from the van
+;; floor to the last-mile robot, and that robot's run up a kerb ramp.
+;;
+;; Every number without a cited source is marked `estimate` in its :basis.
+;; Replacing an estimate with a sourced value is this bot's growth work.
+{:physics/schema "itonami.physical-ai.spec.v1"
+ :repo "cloud-itonami/cloud-itonami-isic-4920"
+ :cases
+ [{:id :delivery-van-emergency-stop
+   :kind :transport
+   :procedure "autonomous delivery van (2.5 t, 800 kg of freight) runs an urban leg and makes an emergency stop; the cruise speed is swept"
+   :params {:mass-kg 2500.0 :payload-kg 800.0 :distance-m 800.0 :a-max-mps2 1.5
+            :brake-decel-mps2 6.0 :drive-force-n 9000.0 :crr 0.012 :cog-height-m 0.75 :payload-cog-height-m 0.90
+            :support-half-length-m 1.60 :max-time-s 900.0}
+   :sweep {:param :v-max-mps :values [5.0 8.3 11.1 13.9 16.7]}
+   :quantity :stopping-distance-m
+   :limit {:max 16.0 :basis "estimate: braking distance the van's forward perception must cover on an urban street; 6 m/s2 is an estimate for dry asphalt, and reaction distance is not included"}
+   :boundary {:lo 2.0 :hi 25.0}}
+  {:id :parcel-van-floor-to-robot
+   :kind :manipulator
+   :procedure "arm at the van's rear door lifts a parcel from the load floor down into the last-mile robot's cargo bay"
+   :params {:l1-m 0.55 :l2-m 0.50 :m1-kg 5.0 :m2-kg 3.5
+            :from [0.30 0.60] :to [0.75 0.05] :duration-s 2.0 :steps 400}
+   :sweep {:param :payload-kg :values [1.0 5.0 10.0 15.0 20.0 30.0]}
+   :quantity :peak-tau1-nm
+   :limit {:max 120.0 :basis "estimate: continuous shoulder torque of a ~10 kg-payload collaborative arm"}
+   :boundary {:lo 0.5 :hi 60.0}}
+  {:id :last-mile-robot-kerb-ramp
+   :kind :transport
+   :procedure "last-mile robot with a 30 kg parcel load climbs the 3 m kerb ramp from the street to the pavement"
+   :params {:mass-kg 60.0 :payload-kg 30.0 :distance-m 3.0 :v-max-mps 1.0 :a-max-mps2 0.5
+            :brake-decel-mps2 1.0 :drive-force-n 180.0 :crr 0.02 :cog-height-m 0.35 :payload-cog-height-m 0.50
+            :support-half-length-m 0.35 :max-time-s 600.0}
+   :sweep {:param :slope-deg :values [0.0 4.0 6.0 8.0 10.0 12.0]}
+   :quantity :cycle-time-s
+   :limit {:max 8.0 :basis "estimate: the robot should clear the kerb ramp within ~8 s so it does not block pedestrians; a stall is out of tolerance"}
+   :boundary {:lo 0.0 :hi 20.0}}]}
