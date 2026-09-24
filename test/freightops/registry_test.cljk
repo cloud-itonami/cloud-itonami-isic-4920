@@ -1,5 +1,5 @@
 (ns freightops.registry-test
-  (:require [clojure.test :refer [deftest is]]
+  (:require [kotoba.test :refer [deftest is]]
             [freightops.registry :as r]))
 
 ;; ----------------------------- tracking-valid? -----------------------------
